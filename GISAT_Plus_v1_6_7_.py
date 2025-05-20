@@ -1626,7 +1626,7 @@ def run_main_app(event):
                 stored_procedure_map = {
                     "AHD": "AHD_Linelist_for_missing_ex()",
                     "Treatment": "CIHP_LineList_for_missing_ex()",
-                    "OZT": "OTZ_LineList_for_missing_ex()",
+                    "OTZ": "OTZ_LineList_for_missing_ex()",
                     "Full Pharmacy": "Full_Pharmacy_Complement_for_missing_ex()",
                     "EAC Cascade": "eac_cascade_linelist_for_missing_ex()",
                     "Clie": "client_tracking_and_discontinuation_for_missing_ex()"
@@ -1645,13 +1645,13 @@ def run_main_app(event):
                 mydb1 = None
                 my_cursor7 = None
                 try:
-                    mydb1 = mysql.connector.connect(
+                    mydb7 = mysql.connector.connect(
                         host="localhost",
                         user="root",
                         passwd="Admin123",
                         database="openmrs"  # Make sure this is the correct database where your SPs reside
                     )
-                    my_cursor7 = mydb1.cursor(buffered=True)
+                    my_cursor7 = mydb7.cursor(buffered=True)
 
                     for table in selected:
                         procedure_to_call = None
@@ -1668,9 +1668,25 @@ def run_main_app(event):
                                 my_cursor7.execute(set_date_variable)
                                 print(f"Running query for: {table} with procedure: {procedure_to_call}")
                                 # Call the stored procedure
+
+                                topwindow = ck.CTkToplevel(None)
+                                topwindow.geometry("350x100")
+                                topwindow.title("Processing")
+                                topwindow.resizable(False, False)
+                                progressbar = ck.CTkProgressBar(topwindow, mode="indeterminate_speed", width=300)
+                                progressbar.pack(pady=30, padx=10)
+                                progressbar.start()
+                                topwindow.lift()
+                                topwindow.focus_force()
+                                display_table_name = table[:17]  # Takes the first 10 characters
+                                ck.CTkLabel(topwindow,
+                                            text=f"Please wait..... updating '{display_table_name}'...",
+                                            font=('Helvetica bold', 15, 'italic')).pack()
+
                                 my_cursor7.execute(f"CALL {procedure_to_call}")
-                                mydb1.commit()  # Commit changes after each stored procedure execution
+                                mydb7.commit()  # Commit changes after each stored procedure execution
                                 messagebox.showinfo("Success", f"Successfully updated '{table}' Line List.")
+                                topwindow.destroy()
                             except mysql.connector.Error as err:
                                 messagebox.showerror("Database Error", f"Error running procedure for {table}: {err}")
                         else:
@@ -1684,8 +1700,8 @@ def run_main_app(event):
                     # Ensure cursor and connection are closed even if errors occur
                     if my_cursor7:
                         my_cursor7.close()
-                    if mydb1 and mydb1.is_connected():
-                        mydb1.close()
+                    if mydb7 and mydb7.is_connected():
+                        mydb7.close()
 
         # ---- Start threading
         checkboxes = {}
