@@ -1278,6 +1278,62 @@ def run_main_app(event):
 
                 messagebox.showinfo("Success", f"Results exported successfully to {excel_file_path}")
 
+            elif script_box.get() == 'EAC Cascade Linelist':
+                messagebox.showinfo("Attention!",
+                                    "This process may take sometime, depending on the size/patient load of the "
+                                    "EAC Cascade you are accessing...")
+                topwindow = ck.CTkToplevel(None)
+                topwindow.geometry("350x100")
+                topwindow.title("Processing")
+                topwindow.resizable(False, False)
+                progressbar = ck.CTkProgressBar(topwindow, mode="indeterminate_speed", width=300)
+                progressbar.pack(pady=30, padx=10)
+                # Start moving the indeterminate progress bar.
+                progressbar.start()
+                topwindow.lift()
+                topwindow.focus_force()
+                l2 = ck.CTkLabel(topwindow, text='Please wait.........', font=('Helvetica bold', 15, 'italic'))
+                l2.pack()
+                # Call the update function
+                # Test to see db
+                end_time = datetime.now()
+                use_date = end_time.strftime("%Y-%m-%d")
+                val_linelist_gen_date = linelist_gen_date.get_date()
+                my_time = datetime.min.time()
+                val_linelist_gen_date1 = datetime.combine(val_linelist_gen_date, my_time)
+                val_linelist_gen_date2 = val_linelist_gen_date1 + timedelta(hours=23, minutes=59, seconds=57)
+                # print(val_linelist_gen_date2)
+                CIHP_listoffacility = "CALL CIHP_listoffacility();"
+                my_cursor2.execute(CIHP_listoffacility)
+                fac_name = "SELECT `property_value` FROM `global_property` WHERE `property`= 'Facility_Name'"
+                run_fac_name = my_cursor2.execute(fac_name)
+                result_fac = my_cursor2.fetchone()[0]
+                set_date_variable = f"SET @Reporting_Date := '{val_linelist_gen_date2}'"
+                run_script_set_date_variable = my_cursor2.execute(set_date_variable)
+                call_nmrs_linelist = "CALL eac_cascade_linelist();"
+                df = pd.read_sql(call_nmrs_linelist, mydb2)
+                df.head()
+                # stop_download()
+                # close small window
+                topwindow.destroy()
+                # Save file
+                open_file = filedialog.askdirectory()
+                path = open_file
+                # df.to_excel(
+                #   f"{path}/CIHP_PBS_Linelist_" + str(val_linelist_gen_date) + "_" + str(result_fac) + ".xlsx",
+                #  sheet_name='PBS Linelist', index=False)
+                excel_file_path = f"{path}/EAC_Cascade_Linelist{val_linelist_gen_date}_{result_fac}.xlsx"
+                df.to_excel(excel_file_path, sheet_name='EAC_Cascade_Linelist', index=False)
+                excel = win32.gencache.EnsureDispatch('Excel.Application')
+                workbook = excel.Workbooks.Open(excel_file_path)
+                encr = ''
+                workbook.Password = encr
+                workbook.Save()
+                workbook.Close()
+                excel.Quit()
+
+                messagebox.showinfo("Success", f"Results exported successfully to {excel_file_path}")
+
 
             elif script_box.get() == 'Extended Treatment Linelist':
                 extended_tx_linelist()
@@ -1387,63 +1443,66 @@ def run_main_app(event):
                 else:
                     print("No tables found or database connection failed.")
                     return
-
-                mydb4 = mysql.connector.connect(
-                    host="localhost",
-                    user="root",
-                    passwd="Admin123",
-                    database="openmrs"
-                )
-                my_cursor4 = mydb4.cursor(buffered=True)
-
-                topwindow = ck.CTkToplevel(None)
-                topwindow.geometry("350x100")
-                topwindow.title("Processing")
-                topwindow.resizable(False, False)
-                progressbar = ck.CTkProgressBar(topwindow, mode="indeterminate_speed", width=300)
-                progressbar.pack(pady=30, padx=10)
-                progressbar.start()
-                topwindow.lift()
-                topwindow.focus_force()
-                ck.CTkLabel(topwindow, text='Please wait.........', font=('Helvetica bold', 15, 'italic')).pack()
-
-                end_time = datetime.now()
-                use_date = end_time.strftime("%Y-%m-%d")
-                val_linelist_gen_date = linelist_gen_date.get_date()
-                val_linelist_gen_date1 = datetime.combine(val_linelist_gen_date, datetime.min.time())
-                val_linelist_gen_date2 = val_linelist_gen_date1 + timedelta(hours=23, minutes=59, seconds=57)
-
-                fac_name = "SELECT `property_value` FROM `global_property` WHERE `property`= 'Facility_Name'"
-                my_cursor4.execute(fac_name)
-                result_fac = my_cursor4.fetchone()[0]
-
-                set_date_variable = f"SET @Reporting_Date := '{val_linelist_gen_date2}'"
-                my_cursor4.execute(set_date_variable)
-
-                call_nmrs_linelist = "SELECT * FROM `validation_linelist`.`extended_treatment_linelist`;"
-                df = pd.read_sql(call_nmrs_linelist, mydb4)
-
-                topwindow.destroy()
-
-                open_file = filedialog.askdirectory()
-                excel_file_path = f"{open_file}/Extended_Treatment_Linelist{val_linelist_gen_date}_{result_fac}.xlsx"
-                df.to_excel(excel_file_path, sheet_name='Extended_Treatment_Linelist', index=False)
-
-                excel = win32.gencache.EnsureDispatch('Excel.Application')
-                workbook = excel.Workbooks.Open(excel_file_path)
-                workbook.Password = ''
-                workbook.Save()
-                workbook.Close()
-                excel.Quit()
-
-                messagebox.showinfo("Success", f"Results exported successfully to {excel_file_path}")
             except Exception as e:
                 messagebox.showerror("Error", str(e))
-            finally:
-                mydb4.close()
-                my_cursor4.close()
+
+        def run_this_task2():
+            mydb4 = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                passwd="Admin123",
+                database="openmrs"
+            )
+            my_cursor4 = mydb4.cursor(buffered=True)
+
+            topwindow = ck.CTkToplevel(None)
+            topwindow.geometry("350x100")
+            topwindow.title("Processing")
+            topwindow.resizable(False, False)
+            progressbar = ck.CTkProgressBar(topwindow, mode="indeterminate_speed", width=300)
+            progressbar.pack(pady=30, padx=10)
+            progressbar.start()
+            topwindow.lift()
+            topwindow.focus_force()
+            ck.CTkLabel(topwindow, text='Please wait.........', font=('Helvetica bold', 15, 'italic')).pack()
+
+            end_time = datetime.now()
+            use_date = end_time.strftime("%Y-%m-%d")
+            val_linelist_gen_date = linelist_gen_date.get_date()
+            val_linelist_gen_date1 = datetime.combine(val_linelist_gen_date, datetime.min.time())
+            val_linelist_gen_date2 = val_linelist_gen_date1 + timedelta(hours=23, minutes=59, seconds=57)
+
+            fac_name = "SELECT `property_value` FROM `global_property` WHERE `property`= 'Facility_Name'"
+            my_cursor4.execute(fac_name)
+            result_fac = my_cursor4.fetchone()[0]
+
+            set_date_variable = f"SET @Reporting_Date := '{val_linelist_gen_date2}'"
+            my_cursor4.execute(set_date_variable)
+
+            call_nmrs_linelist = "CALL CIHP_Extended_Treatment_Linelist()"
+            df = pd.read_sql(call_nmrs_linelist, mydb4)
+
+            topwindow.destroy()
+
+            open_file = filedialog.askdirectory()
+            excel_file_path = f"{open_file}/Extended_Treatment_Linelist{val_linelist_gen_date}_{result_fac}.xlsx"
+            df.to_excel(excel_file_path, sheet_name='Extended_Treatment_Linelist', index=False)
+
+            excel = win32.gencache.EnsureDispatch('Excel.Application')
+            workbook = excel.Workbooks.Open(excel_file_path)
+            workbook.Password = ''
+            workbook.Save()
+            workbook.Close()
+            excel.Quit()
+
+            messagebox.showinfo("Success", f"Results exported successfully to {excel_file_path}")
+
+        #finally:
+            #mydb4.close()
+           # my_cursor4.close()
 
         def get_table_names():
+            check_existing_tables()
             try:
                 conn = mysql.connector.connect(**DB_CONFIG)
                 cursor = conn.cursor()
@@ -1453,10 +1512,55 @@ def run_main_app(event):
                 conn.close()
                 return tables
             except mysql.connector.Error as err:
-                messagebox.showerror("Database Error", f"Error connecting to database:\n{err}")
+                messagebox.showerror("Database Error", "Generate the required standalone line list to proceed.")
                 return []
 
+        def check_existing_tables():
+            REQUIRED_TABLES = {
+                "eac_cascade_linelist_for_ex": "EAC Cascade List",
+                "full_pharmacy_complement_for_ex": "Full Pharmacy Complement",
+                "ctd_linelist_for_ex": "Client Tracking and Discon.",
+                "ahd_linelist_for_ex": "AHD Line List",
+                "otz_linelist_for_ex": "OTZ Line List",
+                "full_linelist_for_quick_list_update": "Treatment Line List",
+            }
+
+            try:
+                conn = mysql.connector.connect(**DB_CONFIG)
+                cursor = conn.cursor()
+
+                # Check existing tables in validation_linelist schema
+                cursor.execute("SHOW TABLES FROM validation_linelist;")
+                existing_tables = set(row[0] for row in cursor.fetchall())
+
+                # Identify missing tables
+                missing_tables = {
+                    name: desc for name, desc in REQUIRED_TABLES.items() if name not in existing_tables
+                }
+
+                if missing_tables:
+                    missing_names = "\n".join(f"• {desc}" for desc in missing_tables.values())
+                    messagebox.showwarning(
+                        "Missing Line Lists",
+                        f"The following table(s) are not available:\n\n{missing_names}\n\nGenerate standalone line list before proceeding to 'Extended line list'..."
+                    )
+                    # Stop further execution if tables are missing
+                    cursor.close()
+                    conn.close()
+                    return
+
+                # Close connections
+                cursor.close()
+                conn.close()
+
+            except mysql.connector.Error as err:
+                messagebox.showerror("Database Error", f"Error connecting to database:\n{err}")
+                return
+
         def create_gui(table_names):
+            #thread1 = threading.Thread(target=create_gui, args=(table_names,))
+            #thread1.start()
+            #linelist_gen_button.configure(command=threading.Thread(target=create_gui).start)
             checkboxes.clear()  # Clear any old entries if needed
             select_table_window = ck.CTk()
             select_table_window.title("Select Tables")
@@ -1483,8 +1587,9 @@ def run_main_app(event):
 
             continue_with_list_btn = ck.CTkButton(
                 select_table_window,
-                text="Continue with list",
-                command=lambda: submit_selection(select_table_window)
+                text="Continue with lists",
+                font=ck.CTkFont(size=14, weight="bold"),
+                command=lambda: (select_table_window.destroy(), run_this_task2())
             )
             continue_with_list_btn.pack(side="left", padx=10)
 
@@ -1508,17 +1613,79 @@ def run_main_app(event):
 
             # Run queries based on selected items
             for table in selected:
-                if table.startswith("AHD"):
-                    print(f"Running AHD query for: {table}")
-                    # my_cursor.execute("CALL some_ahd_query();")
+                mydb1 = mysql.connector.connect(
+                    host="localhost",
+                    user="root",
+                    passwd="Admin123",
+                    database="openmrs"
+                )
 
-                elif table.startswith("Treatment"):
-                    print(f"Running Treatment query for: {table}")
-                    # my_cursor.execute("CALL some_treatment_query();")
+                my_cursor7 = mydb1.cursor(buffered=True)
+                # Define a mapping of table prefixes to stored procedures
+                # This dictionary makes it easy to add or change procedures later.
+                stored_procedure_map = {
+                    "AHD": "AHD_Linelist_for_missing_ex()",
+                    "Treatment": "CIHP_LineList_for_missing_ex()",
+                    "OZT": "OTZ_LineList_for_missing_ex()",
+                    "Full Pharmacy": "Full_Pharmacy_Complement_for_missing_ex()",
+                    "EAC Cascade": "eac_cascade_linelist_for_missing_ex()",
+                    "Clie": "client_tracking_and_discontinuation_for_missing_ex()"
+                }
 
-                elif table.startswith("OZT"):
-                    print(f"Running OZT query for: {table}")
-                    # my_cursor.execute("CALL some_ozt_query();")
+                # Calculate the reporting date variable once outside the loop
+                # This prevents redundant calculations for each selected table.
+                val_linelist_gen_date = linelist_gen_date.get_date()
+                my_time = datetime.min.time()
+                val_linelist_gen_date1 = datetime.combine(val_linelist_gen_date, my_time)
+                val_linelist_gen_date2 = val_linelist_gen_date1 + timedelta(hours=23, minutes=59, seconds=57)
+                set_date_variable = f"SET @Reporting_Date := '{val_linelist_gen_date2}'"
+
+                # Establish database connection and cursor once before the loop
+                # This is more efficient than connecting for every single table.
+                mydb1 = None
+                my_cursor7 = None
+                try:
+                    mydb1 = mysql.connector.connect(
+                        host="localhost",
+                        user="root",
+                        passwd="Admin123",
+                        database="openmrs"  # Make sure this is the correct database where your SPs reside
+                    )
+                    my_cursor7 = mydb1.cursor(buffered=True)
+
+                    for table in selected:
+                        procedure_to_call = None
+                        # Find the stored procedure name based on the table's prefix
+                        for prefix, procedure in stored_procedure_map.items():
+                            if table.startswith(prefix):
+                                procedure_to_call = procedure
+                                break  # Exit inner loop once a match is found
+
+                        if procedure_to_call:
+                            try:
+                                # Set the session variable for the current procedure call
+                                # It's okay to execute this repeatedly; it just re-sets the session variable.
+                                my_cursor7.execute(set_date_variable)
+                                print(f"Running query for: {table} with procedure: {procedure_to_call}")
+                                # Call the stored procedure
+                                my_cursor7.execute(f"CALL {procedure_to_call}")
+                                mydb1.commit()  # Commit changes after each stored procedure execution
+                                messagebox.showinfo("Success", f"Successfully updated '{table}' Line List.")
+                            except mysql.connector.Error as err:
+                                messagebox.showerror("Database Error", f"Error running procedure for {table}: {err}")
+                        else:
+                            print(f"No stored procedure defined for table: {table}")
+                            messagebox.showwarning("Unknown Table",
+                                                   f"No specific stored procedure found for table: {table}. Skipping.")
+
+                except mysql.connector.Error as err:
+                    messagebox.showerror("Database Connection Error", f"Error connecting to database: {err}")
+                finally:
+                    # Ensure cursor and connection are closed even if errors occur
+                    if my_cursor7:
+                        my_cursor7.close()
+                    if mydb1 and mydb1.is_connected():
+                        mydb1.close()
 
         # ---- Start threading
         checkboxes = {}
@@ -1532,8 +1699,9 @@ def run_main_app(event):
         thread = threading.Thread(target=run_this_task)
         thread.start()
 
-        thread = threading.Thread(target=create_gui, args=(create_gui.table_names,))
-        thread.start()
+        thread1 = threading.Thread(target=create_gui, args=(create_gui.table_names,))
+        thread1.start()
+        #db_backup_button.configure(command=threading.Thread(target=backup_nmrs).start)
 
 
 
@@ -1571,9 +1739,7 @@ def run_main_app(event):
         my_cursor.execute(sql_scripts_all.create_Last_6_Viral_Load_Sample_Result)
         my_cursor.execute(sql_scripts_all.create_Service_Integrator_Log_SIMO)
         my_cursor.execute(sql_scripts_all.create_Extended_Treatment_Linelist)
-        my_cursor.execute(sql_scripts_all.create_otz_linelist_for_ex)
-        my_cursor.execute(sql_scripts_all.create_ahd_linelist_for_ex)
-        my_cursor.execute(sql_scripts_all.create_ctd_linelist_for_ex)
+        my_cursor.execute(sql_scripts_all.create_eac_cascade_linelist)
 
     def truncate_linelist():
         result = messagebox.askyesnocancel("Truncate",
@@ -1636,6 +1802,9 @@ def run_main_app(event):
                 elif script_box.get() == 'Extended Treatment Linelist':
                     my_cursor.execute("TRUNCATE TABLE `Extended_Treatment_Linelist`")
                     messagebox.showinfo("Truncate", "Extended Treatment Linelist")
+                elif script_box.get() == 'EAC Cascade Linelist':
+                    my_cursor.execute("TRUNCATE TABLE `eac_cascade_linelist`")
+                    messagebox.showinfo("Truncate", "EAC Cascade Linelist")
                 else:
                     messagebox.showinfo("Oops!", "Oops!!! You can't ;)")
                 topwindow2 = ck.CTkToplevel(None)
@@ -3047,6 +3216,7 @@ def run_main_app(event):
         "Nutritional Status",
         "Last 6 Viral Load Sample & Result",
         "Service Integrator Log (SIMO)",
+        "EAC Cascade Linelist",
         "Extended Treatment Linelist"
 
     ]
@@ -3090,6 +3260,8 @@ def run_main_app(event):
             my_cursor.execute("SELECT DISTINCT(`IP`) FROM `Last_6_Viral_Load_Sample_Result`")
         elif script_box.get() == 'Service Integrator Log (SIMO)':
             my_cursor.execute("SELECT DISTINCT(`IP`) FROM `Service_Integrator_Log_SIMO`")
+        elif script_box.get() == 'EAC Cascade Linelist':
+            my_cursor.execute("SELECT DISTINCT(`IP`) FROM `EAC_Cascade_Linelist`")
         elif script_box.get() == 'Extended Treatment Linelist':
             my_cursor.execute("SELECT DISTINCT(`IP`) FROM `Extended_Treatment_Linelist`")
         else:
@@ -3133,6 +3305,8 @@ def run_main_app(event):
             my_cursor.execute("SELECT DISTINCT(`State`) FROM `Last_6_Viral_Load_Sample_Result`")
         elif script_box.get() == 'Service Integrator Log (SIMO)':
             my_cursor.execute("SELECT DISTINCT(`State`) FROM `Service_Integrator_Log_SIMO`")
+        elif script_box.get() == 'EAC Cascade Linelist':
+            my_cursor.execute("SELECT DISTINCT(`State`) FROM `EAC_Cascade_Linelist`")
         elif script_box.get() == 'Extended Treatment Linelist':
             my_cursor.execute("SELECT DISTINCT(`State`) FROM `Extended_Treatment_Linelist`")
 
@@ -3175,6 +3349,8 @@ def run_main_app(event):
             my_cursor.execute("SELECT DISTINCT(`SurgeCommand`) FROM `Last_6_Viral_Load_Sample_Result`")
         elif script_box.get() == 'Service Integrator Log (SIMO)':
             my_cursor.execute("SELECT DISTINCT(`SurgeCommand`) FROM `Service_Integrator_Log_SIMO`")
+        elif script_box.get() == 'EAC Cascade Linelist':
+            my_cursor.execute("SELECT DISTINCT(`SurgeCommand`) FROM `EAC_Cascade_Linelist`")
         elif script_box.get() == 'Extended Treatment Linelist':
             my_cursor.execute("SELECT DISTINCT(`SurgeCommand`) FROM `Extended_Treatment_Linelist`")
         else:
@@ -3215,6 +3391,8 @@ def run_main_app(event):
             my_cursor.execute("SELECT DISTINCT(`lga`) FROM `Last_6_Viral_Load_Sample_Result`")
         elif script_box.get() == 'Service Integrator Log (SIMO)':
             my_cursor.execute("SELECT DISTINCT(`lga`) FROM `Service_Integrator_Log_SIMO`")
+        elif script_box.get() == 'EAC Cascade Linelist':
+            my_cursor.execute("SELECT DISTINCT(`lga`) FROM `EAC_Cascade_Linelist`")
         elif script_box.get() == 'Extended Treatment Linelist':
             my_cursor.execute("SELECT DISTINCT(`lga`) FROM `Extended_Treatment_Linelist`")
         else:
@@ -4024,6 +4202,8 @@ def run_main_app(event):
             table = 'Last_6_Viral_Load_Sample_Result'
         elif script_box.get() == 'Service Integrator Log (SIMO)':
             table = 'Service_Integrator_Log_SIMO'
+        elif script_box.get() == 'EAC Cascade Linelist':
+            table = 'EAC_Cascade_Linelist'
         elif script_box.get() == 'Extended Treatment Linelist':
             table = 'Extended_Treatment_Linelist'
 
@@ -4119,6 +4299,7 @@ script_box = ck.CTkComboBox(frame_1,
                                     "Nutritional Status",
                                     "Last 6 Viral Load Sample & Result",
                                     "Service Integrator Log (SIMO)",
+                                    "EAC Cascade Linelist",
                                     "Extended Treatment Linelist"],
                             command=run_main_app,
                             variable=combobox_var, width=280)
